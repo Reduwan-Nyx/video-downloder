@@ -22,6 +22,7 @@ DOWNLOAD_DIR = 'downloads'
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 downloads = {}
 
+<<<<<<< HEAD
 def check_ffmpeg():
     """Check if FFmpeg is available"""
     try:
@@ -32,6 +33,8 @@ def check_ffmpeg():
 
 FFMPEG_AVAILABLE = check_ffmpeg()
 
+=======
+>>>>>>> 21c5b93 (Initial commit)
 def get_fixed_ytdl_opts(download_id, output_path, download_type, quality, format_type, audio_quality, audio_format):
     """Get properly configured yt-dlp options - FIXED VERSION"""
 
@@ -54,6 +57,15 @@ def get_fixed_ytdl_opts(download_id, output_path, download_type, quality, format
     base_opts = {
         'outtmpl': output_path,
         'progress_hooks': [custom_progress_hook],
+<<<<<<< HEAD
+=======
+        # Avoid downloading entire playlists by default
+        'noplaylist': True,
+        # Provide a common browser-like UA to avoid some extractor 400s
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+>>>>>>> 21c5b93 (Initial commit)
         'no_warnings': False,
         'extractor_retries': 3,
         'fragment_retries': 5,
@@ -63,11 +75,16 @@ def get_fixed_ytdl_opts(download_id, output_path, download_type, quality, format
 
     # FIXED: Audio download configuration
     if download_type == 'audio':
+<<<<<<< HEAD
         if not FFMPEG_AVAILABLE:
             # Without FFmpeg - use direct audio formats
             base_opts['format'] = 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best'
         else:
             # With FFmpeg - FIXED postprocessor configuration
+=======
+        # Configure audio download options
+        if audio_format == 'mp3':
+>>>>>>> 21c5b93 (Initial commit)
             if audio_format == 'mp3':
                 base_opts.update({
                     'format': 'bestaudio/best',
@@ -112,12 +129,29 @@ def get_fixed_ytdl_opts(download_id, output_path, download_type, quality, format
             'best': 'best/bestvideo+bestaudio/best'
         }
 
+<<<<<<< HEAD
         base_opts['format'] = quality_formats.get(quality, 'best/bestvideo+bestaudio/best')
 
         # Add format preference if specified
         if format_type and format_type != 'auto':
             current_format = base_opts['format']
             base_opts['format'] = current_format.replace('best', f'best[ext={format_type}]')
+=======
+        # Choose the quality/formats. Keep format expressions valid.
+        selected_format = quality_formats.get(quality, 'best/bestvideo+bestaudio/best')
+
+        # If the user specified a container (mp4/webm/mkv) and not 'auto', prefer it properly.
+        if format_type and format_type != 'auto':
+            # Replace any 'bestvideo' or 'bestaudio' with ext filter where appropriate
+            # Build a safer preference that inserts [ext=<format_type>] where meaningful
+            selected_format = selected_format.replace('best[ext=', 'best[')  # normalize
+            # For combined video+audio patterns, apply ext filter to each best occurrence
+            selected_format = selected_format.replace('best', f'bestaudio[ext={format_type}]/best') if 'bestaudio' in selected_format and 'bestvideo' not in selected_format else selected_format
+            # More conservatively, append an ext-preferring alternative
+            selected_format = f'{selected_format}/best[ext={format_type}]'
+
+        base_opts['format'] = selected_format
+>>>>>>> 21c5b93 (Initial commit)
 
     return base_opts
 
@@ -148,8 +182,13 @@ HTML_TEMPLATE = f"""
         .header h1 {{ font-size: 2.2rem; margin-bottom: 10px; }}
         .main {{ padding: 30px; }}
         .status {{
+<<<<<<< HEAD
             background: {'#d4edda' if FFMPEG_AVAILABLE else '#f8d7da'};
             color: {'#155724' if FFMPEG_AVAILABLE else '#721c24'};
+=======
+            background: #d4edda;
+            color: #155724;
+>>>>>>> 21c5b93 (Initial commit)
             padding: 12px 20px; margin-bottom: 25px; border-radius: 8px;
             font-weight: 500;
         }}
@@ -220,10 +259,13 @@ HTML_TEMPLATE = f"""
         </div>
 
         <div class="main">
+<<<<<<< HEAD
             <div class="status">
                 🔧 FFmpeg: {'✅ Available - All formats supported' if FFMPEG_AVAILABLE else '❌ Not found - M4A/WebM only'}
             </div>
 
+=======
+>>>>>>> 21c5b93 (Initial commit)
             <form id="downloadForm">
                 <div class="form-group">
                     <label for="url">Video URL (Any Platform):</label>
@@ -285,9 +327,17 @@ HTML_TEMPLATE = f"""
                 <div class="form-group" id="audioFormatGroup" style="display: none;">
                     <label for="audioFormat">Audio Format:</label>
                     <select id="audioFormat">
+<<<<<<< HEAD
                         {'<option value="m4a">M4A (Recommended)</option><option value="webm">WebM</option>' if not FFMPEG_AVAILABLE else '<option value="mp3">MP3 (Most Compatible)</option><option value="m4a">M4A (High Quality)</option><option value="wav">WAV (Uncompressed)</option><option value="flac">FLAC (Lossless)</option>'}
                     </select>
                     {'<div class="quality-info">Limited formats without FFmpeg</div>' if not FFMPEG_AVAILABLE else ''}
+=======
+                        <option value="mp3">MP3 (Most Compatible)</option>
+                        <option value="m4a">M4A (High Quality)</option>
+                        <option value="wav">WAV (Uncompressed)</option>
+                        <option value="flac">FLAC (Lossless)</option>
+                    </select>
+>>>>>>> 21c5b93 (Initial commit)
                 </div>
 
                 <button type="submit" class="btn" id="downloadBtn">
@@ -555,7 +605,23 @@ def download_video_fixed(download_id, url, download_type, video_quality, video_f
                     with yt_dlp.YoutubeDL(simple_opts) as ydl_simple:
                         ydl_simple.download([url])
                 else:
+<<<<<<< HEAD
                     raise dl_error
+=======
+                    # For video downloads, try a fallback that avoids strict ext/height filters
+                    print("Retrying with simpler video format (fallback)...")
+                    simple_video_opts = ydl_opts.copy()
+                    # Replace complex format with a more permissive one
+                    simple_video_opts['format'] = 'bestvideo+bestaudio/best'
+                    # Remove any ext-specific patterns that may be invalid
+                    try:
+                        simple_video_opts.pop('postprocessors', None)
+                    except Exception:
+                        pass
+
+                    with yt_dlp.YoutubeDL(simple_video_opts) as ydl_simple:
+                        ydl_simple.download([url])
+>>>>>>> 21c5b93 (Initial commit)
 
         # Find downloaded file
         if downloads[download_id]['status'] != 'completed':
@@ -581,7 +647,10 @@ if __name__ == '__main__':
     print("✅ Fixed 'unhashable type: dict' error")
     print("✅ Improved audio download handling")
     print("✅ Better error recovery")
+<<<<<<< HEAD
     print(f"🔧 FFmpeg: {'Available' if FFMPEG_AVAILABLE else 'Not found'}")
+=======
+>>>>>>> 21c5b93 (Initial commit)
     print("🚀 Server starting at: http://localhost:5000")
     print("=" * 60)
 
